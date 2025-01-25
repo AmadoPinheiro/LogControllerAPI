@@ -1,8 +1,5 @@
 # LogControllerAPI
 
-
-# LogTransformer
-
 ## 🚀 Tecnologias Utilizadas
 
 - ⚙️ **.NET Core 2.1**  
