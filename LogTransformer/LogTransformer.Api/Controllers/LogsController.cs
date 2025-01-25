@@ -114,12 +114,23 @@ namespace LogTransformer.Api.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> GetLogById(int id)
         {
-            var log = await _logRepository.GetLogByIdAsync(id);
-            if (log == null)
+            try
             {
-                return NotFound("Log não encontrado.");
+                var log = await _logRepository.GetLogByIdAsync(id);
+                if (log == null)
+                {
+                    return NotFound("Log não encontrado.");
+                }
+                var logResponse = _mapper.Map<LogResponseDto>(log);
+
+                logResponse.TransformedLog = _logTransformerService.TransformLog(log.OriginalLog);
+
+                return Ok(logResponse);
             }
-            return Ok(log);
+            catch (Exception ex)
+            {
+                return BadRequest("Erro ao buscar log" + ex);
+            }
         }
 
         [HttpGet("transformed")]
@@ -136,15 +147,40 @@ namespace LogTransformer.Api.Controllers
 
             return Ok(new { TransformedLogs = logsWithHeader });
         }
-
         [HttpPost("transform")]
-        public async Task<IActionResult> TransformLogs([FromBody] string[] logs, [FromQuery] bool saveToFile = false)
+        public async Task<IActionResult> TransformLogs([FromBody] Newtonsoft.Json.Linq.JToken input, [FromQuery] bool saveToFile = false)
         {
             try
             {
-                if (logs == null || !logs.Any())
+                List<string> logs = new List<string>();
+
+                if (input.Type == Newtonsoft.Json.Linq.JTokenType.Array)
                 {
-                    return BadRequest("A lista de logs não pode ser nula ou vazia.");
+                    logs = input.ToObject<List<string>>();
+                }
+                else if (input.Type == Newtonsoft.Json.Linq.JTokenType.String)
+                {
+                    var url = input.ToString();
+
+                    if (!Uri.IsWellFormedUriString(url, UriKind.Absolute))
+                    {
+                        return BadRequest("A entrada deve ser uma lista de logs ou uma URL válida.");
+                    }
+
+                    using (var client = new HttpClient())
+                    {
+                        var logContent = await client.GetStringAsync(url);
+                        logs = logContent.Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries).ToList();
+                    }
+                }
+                else
+                {
+                    return BadRequest("A entrada deve ser uma lista de logs ou uma URL válida.");
+                }
+
+                if (!logs.Any())
+                {
+                    return BadRequest("A lista de logs não pode ser vazia.");
                 }
 
                 var transformedLogs = logs.Select(log => _logTransformerService.TransformLogAgoraFormat(log)).ToList();
@@ -161,16 +197,9 @@ namespace LogTransformer.Api.Controllers
 
                     string filePath = Path.Combine(logsDirectory, $"logs_transformed_{DateTime.UtcNow:yyyyMMddHHmmss}.txt");
 
-                    try
-                    {
-                        await System.IO.File.WriteAllTextAsync(filePath, logsWithHeader);
+                    await System.IO.File.WriteAllTextAsync(filePath, logsWithHeader);
 
-                        return Ok(new { FilePath = filePath });
-                    }
-                    catch (Exception ex)
-                    {
-                        return StatusCode(500, $"Erro ao salvar o arquivo de logs transformados: {ex.Message}");
-                    }
+                    return Ok(new { FilePath = filePath });
                 }
 
                 return Ok(new { TransformedLogs = logsWithHeader });
@@ -180,5 +209,7 @@ namespace LogTransformer.Api.Controllers
                 return StatusCode(500, $"Erro ao processar os logs: {ex.Message}");
             }
         }
+
+
     }
 }

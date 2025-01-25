@@ -4,11 +4,12 @@ using LogTransformer.Core.Entities;
 
 namespace LogTransformer.Api.Mappings
 {
-    public class MappingProfile : Profile
+    public class MappingProfilePost : Profile
     {
-        public MappingProfile()
+        public MappingProfilePost()
         {
             CreateMap<LogEntryDto, LogEntry>();
         }
+       
     }
 }
