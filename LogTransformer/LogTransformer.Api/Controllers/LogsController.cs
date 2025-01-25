@@ -33,11 +33,6 @@ namespace LogTransformer.Api.Controllers
         {
             try
             {
-
-                if (logDto == null)
-                {
-                    return BadRequest("Log não pode ser nulo.");
-                }
                 var log = _mapper.Map<LogEntry>(logDto);
 
                 LogValidator.EnsureValidLog(log.OriginalLog);

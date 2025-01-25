@@ -46,7 +46,7 @@ namespace LogTransformer.Core.Services
             var responseSize = int.Parse(parts[0]);
             var statusCode = int.Parse(parts[1]);
             var cacheStatus = ConvertCacheStatus(parts[2]);
-            var requestParts = parts[3].Trim('"').Split(' '); // Exemplo: "GET /robots.txt HTTP/1.1"
+            var requestParts = parts[3].Trim('"').Split(' ');
             var timeTaken = (int)Math.Round(double.Parse(parts[4]));
 
             return $"\"MINHA CDN\" {requestParts[0]} {statusCode} {requestParts[1]} {timeTaken} {responseSize} {cacheStatus}";
@@ -75,15 +75,5 @@ namespace LogTransformer.Core.Services
                     return status;
             }
         }
-
-
-        //public string AddHeaderToLogs(IEnumerable<string> logs)
-        //{
-        //    var header = $"#Version: 1.0\n#Date: {DateTime.UtcNow:dd/MM/yyyy HH:mm:ss}\n" +
-        //                 "#Fields: provider http-method status-code uri-path time-taken response-size cache-status";
-        //    return $"{header}\n{string.Join("\n", logs)}";
-        //}
-
-
     }
 }
